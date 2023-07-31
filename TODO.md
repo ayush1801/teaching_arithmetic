@@ -1,0 +1,3 @@
+- run only on NanoGPT
+- check the splitting technique
+- clean the code based on our use case

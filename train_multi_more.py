@@ -15,6 +15,7 @@ import numpy as np
 import torch
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.distributed import init_process_group, destroy_process_group
+from wandb_key import wandb_key
 
 from model import GPTConfig, GPT
 from main_utils import *
@@ -346,6 +347,7 @@ def get_lr(it):
 # logging
 if wandb_log and master_process:
     import wandb
+    wandb.login(key=wandb_key)
     wandb.init(project=wandb_project, entity=wandb_entity, name=wandb_run_name, config=config)
 
 # training loop

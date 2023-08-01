@@ -26,15 +26,15 @@ from main_utils import *
 out_dir = 'out'
 resume_dir = None
 eval_interval = 2000
-log_interval = 1
+log_interval = 1000
 eval_iters = 200
 eval_only = False # if True, script exits right after the first eval
 always_save_checkpoint = True # if True, always save a checkpoint after each eval
 init_from = 'scratch' # 'scratch' or 'resume' or 'gpt2*'
 # wandb logging
-wandb_entity = 'ssdd'
+# wandb_entity = 'ssdd'
 wandb_log = True # disabled by default
-wandb_project = 'owt'
+wandb_project = 'Arithmetic'
 wandb_run_name = 'gpt2-nanogpt' # 'run' + str(time.time())
 exp_name = 'default_exp_name'
 # data
@@ -55,7 +55,7 @@ val_data_path2 = 'val_addition.bin'
 # evaluation
 eval_text = False # if True get perplexity using eval_text_data_path
 eval_text_data_path = None # directory to text data (.bin file) - ex. 'data/shakespeare_add_ar_mixed/val_text.bin' 
-eval_addition = False # if True compute test accuracy of "a+b="
+eval_addition = True # if True compute test accuracy of "a+b="
 eval_addition_ar = False
 start_ar = None
 start = None
@@ -145,7 +145,8 @@ ctx = nullcontext() if device_type == 'cpu' else torch.amp.autocast(device_type=
 
 # poor man's data loader
 if data_type == 'binary':
-    data_dir = os.path.join('data', dataset)
+    #data_dir = os.path.join('data', dataset)
+    data_dir = "/home/t-agrawalay/teaching_arithmetic/data/multiplication_more/num_digits_2/plain"
     train_data = np.memmap(os.path.join(data_dir, train_data_path), dtype=np.uint16, mode='r')
     val_data = np.memmap(os.path.join(data_dir, val_data_path), dtype=np.uint16, mode='r')
     if train_both:
@@ -348,7 +349,7 @@ def get_lr(it):
 if wandb_log and master_process:
     import wandb
     wandb.login(key=wandb_key)
-    wandb.init(project=wandb_project, entity=wandb_entity, name=wandb_run_name, config=config)
+    wandb.init(project=wandb_project,name=wandb_run_name, config=config)
 
 # training loop
 X, Y = get_batch('train') # fetch the very first batch
@@ -358,9 +359,8 @@ raw_model = model.module if ddp else model # unwrap DDP container if needed
 running_mfu = -1.0
 encode, decode = get_encode_decode(meta_path)
 
-result_dict = {'iter': [], 'train_loss': [], 'val_loss': [], 'val_ppl': [], 
-               'test_acc': [], 'test_acc_sin': [], 'test_acc_sqrt': [], 'test_acc_sub': [], 'test_acc_mul': [],
-               'train_acc': [], 'train_acc_sin': [], 'train_acc_sqrt': [], 'train_acc_sub': [], 'train_acc_mul': [],}
+result_dict = {'iter': [], 'train_loss': [], 'val_loss': [], 'val_ppl' : [], 
+              'test_acc_mul': [],'train_acc_mul': [],}
 result_dir = get_results_dir(config)
 config['result_dir'] = result_dir
 with open(os.path.join(result_dir, "config.yaml"), "w") as yaml_file:
@@ -379,7 +379,7 @@ while True:
             ppl = evaluate_text(config, model, eval_text_data, ctx)
             print(f"perplexity of evluation text data: {ppl}")
 
-        config['start'] = "FILE:data/bal/test_multiplication.txt" if not algo_reason else "FILE:data/bal/test_multiplication_100.txt"
+        config['start'] = "FILE:/home/t-agrawalay/teaching_arithmetic/data/multiplication_more/num_digits_2/plain/train_examples_test.txt" if not algo_reason else "FILE:data/bal/test_multiplication_100.txt"
         test_accuracy_mul, _ = evaluate_addition_batch(config, model, ctx, encode, decode, verbose=True, num_digit=num_digit, zero_pad=zero_pad, 
                                                        reverse_ab=reverse_ab, reverse_c=reverse_c, algo_reason=algo_reason, 
                                                        binary=binary, data_type=data_type, operator="*", data_format=data_format)
@@ -390,7 +390,7 @@ while True:
                                                        binary=binary, data_type=data_type, operator=operator, data_format='algo_reasoning')
         # let's evaluate on train dataset only one in a while:
         if iter_num % (10 * eval_interval) == 0  and iter_num > 0:
-            config['start'] = 'FILE:data/bal/train_multiplication.txt'
+            config['start'] = 'FILE:/home/t-agrawalay/teaching_arithmetic/data/multiplication_more/num_digits_2/plain/train_examples.txt'
             train_accuracy_mul, _ = evaluate_addition_batch(config, model, ctx, encode, decode, verbose=True, num_digit=num_digit, zero_pad=zero_pad,   
                                                        reverse_ab=reverse_ab, reverse_c=reverse_c, algo_reason=algo_reason, 
                                                        binary=binary, data_type=data_type, operator="*", data_format=data_format)
@@ -419,6 +419,7 @@ while True:
         result_dict['test_acc_mul'].append(test_accuracy_mul)
         result_dict['train_acc_mul'].append(train_accuracy_mul)
 
+        print(result_dict)
         result_df = pd.DataFrame(result_dict)
         result_df.to_csv(os.path.join(result_dir, 'result.csv'), index=False)
         

@@ -152,6 +152,7 @@ def get_encode_decode(meta_path=None, tokenizer='char'):
         with open(meta_path, 'rb') as f:
             meta = pickle.load(f)
         # TODO want to make this more general to arbitrary encoder/decoder schemes
+        print(meta)
         stoi, itos = meta['stoi'], meta['itos']
         encode = lambda s: [stoi[c] for c in s]
         decode = lambda l: ''.join([itos[i] for i in l])
@@ -437,6 +438,7 @@ def evaluate_addition_new(config, model, ctx, encode, decode, verbose=False, num
     # for i in tqdm(range(total)):
         line = lines[i]
         line.strip('\n')
+        #print(line)
         start_ids = encode(line)
         x = (torch.tensor(start_ids, dtype=torch.long, device=device)[None, ...])
         len_x = len(x[0])
@@ -557,6 +559,7 @@ def evaluate_addition_batch(config, model, ctx, encode, decode, verbose=False, n
 
     if data_type=='text':
         test_data_file = start[5:]
+        #test_data_file = start
         print(f"Evaluating Addition using test data file: {test_data_file}")
         # we know test examples are test.txt
         test_data_list = get_data_list(test_data_file, operator=operator)
@@ -592,8 +595,10 @@ def evaluate_addition_batch(config, model, ctx, encode, decode, verbose=False, n
     line_idxs = range(total) if verbose else tqdm(range(total))
     prompt_dict = {}
     for line_idx in line_idxs:
+        #print(lines)
         line = lines[line_idx]
         line.strip('\n')
+        #print(line)
         start_ids = encode(line)
         x = (torch.tensor(start_ids, dtype=torch.long, device=device)[None, ...])
         len_x = len(x[0])
